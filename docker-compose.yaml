@@ -1,0 +1,13 @@
+version: '2.0'
+services:
+    app:
+        build: .
+        environment: 
+        - CHOKIDAR_USEPOLLING=true
+        ports:
+        - 3000:3000
+        volumes: 
+        - ./dist:/app/dist
+        - ./src:/app/src
+volumes: 
+    node_modules:
