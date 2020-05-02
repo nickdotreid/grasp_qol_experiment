@@ -5,7 +5,8 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
+    "build": "parcel build src/index.html",
+    "dev": "parcel src/index.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -14,7 +15,7 @@
     "d3": "^5.16.0"
   },
   "devDependencies": {
-    "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11"
+    "parcel-bundler": "^1.12.4",
+    "typescript": "^3.8.3"
   }
 }
