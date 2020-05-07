@@ -34,9 +34,10 @@ d3.csv('data/qol.csv')
     .append('a')
     .text((d: string) => {
         return d;
+    })
+    .on('click', function(d) {
+        drawLines(d);
     });
-    
-    let domain = domains[0];
 
     let width = 500;
     let height = 300;
@@ -45,20 +46,6 @@ d3.csv('data/qol.csv')
     const svg = d3.select('#main').append("svg")
         .attr("width", width + margin *2)
         .attr("height", height + margin *2);
-
-    // get lines
-    let lines = data.filter((d:any) => {
-        return d['Domain'] == domain;
-    });
-    lines = lines.map((d:any) => {
-        return months.map((month) => {
-            return {
-                'value': d[month],
-                'month': Number(month)
-            };
-        });
-    });
-    console.log(lines);
 
     const x = d3.scaleLinear()
         .domain([Number(months[0]), Number(months[months.length - 1])])
@@ -73,8 +60,6 @@ d3.csv('data/qol.csv')
     svg.append("g")
         .attr("transform", `translate(${margin}, ${margin})`)
         .call(d3.axisLeft(y));
-    
-    console.log(lines[0]);
 
     const lineGenerator = d3.line<any>()
         .x((d, i) => {
@@ -84,19 +69,40 @@ d3.csv('data/qol.csv')
             return y(d['value']);
         });
 
-    const chart = svg.append("g")
-        .attr('transform', `translate(${margin}, ${margin})`);
+    function drawLines(domain: string) {
+        let lines = data.filter((d:any) => {
+            return d['Domain'] == domain;
+        });
+        lines = lines.map((d:any) => {
+            return months.map((month) => {
+                return {
+                    'value': d[month],
+                    'month': Number(month),
+                    'domain': d['Domain'],
+                    'age': d['Age range']
+                };
+            });
+        });
+        console.log(lines);
+        
+        console.log(lines[0]);
 
-    chart.selectAll("path")
-        .data(lines)
-        .enter()
-        .append("path")
-        .attr("fill", "none")
-        .attr("stroke", "steelblue")
-        .attr("stroke-width", 1.5)
-        .attr("d", (d) => {
-            return lineGenerator(d)
-        })
+        const chart = svg.append("g")
+            .attr('transform', `translate(${margin}, ${margin})`);
+
+        chart.selectAll("path")
+            .data(lines)
+            .enter()
+            .append("path")
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", 1.5)
+            .attr("d", (d) => {
+                return lineGenerator(d);
+            });
+    }
+
+    drawLines(domains[0]);
 
 });
 
