@@ -1,3 +1,7 @@
 .hello {
     color: red;
 }
+
+path.line {
+    opacity: 0.3;
+}

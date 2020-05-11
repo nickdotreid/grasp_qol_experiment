@@ -34,7 +34,7 @@ d3.csv('data/qol.csv')
     });
 
     currentDomain = domains[0];
-    viewableMonths = months;
+    viewableMonths = months.slice();
 
     d3.select('nav').selectAll('a')
     .data(domains)
@@ -75,10 +75,6 @@ d3.csv('data/qol.csv')
     const svg = d3.select('#main').append("svg")
         .attr("width", width + margin *2)
         .attr("height", height + margin *2);
-    let x = d3.scaleLinear()
-        .domain([Number(months[0]), Number(months[months.length - 1])])
-        .range([0, width]);
-
     const xAxis = svg.append("g")
         .attr("transform", `translate(${margin}, ${height+margin})`)
     const yAxis = svg.append("g")
@@ -90,12 +86,23 @@ d3.csv('data/qol.csv')
         const minMonth = Number(d3.min(_months));
         const maxMonth = Number(d3.max(_months));
 
+        const visibleMonths = months.filter((_month) => {
+            return (_month >= minMonth) && (_month <= maxMonth);
+        });
+        visibleMonths.sort((a, b) => {
+            if (a > b) {
+                return 1;
+            } else {
+                return -1;
+            }
+        });
+
         const x = d3.scaleLinear()
-        .domain([minMonth, maxMonth])
-        .range([0, width]);
+            .domain([minMonth, maxMonth])
+            .range([0, width]);
         const y = d3.scaleLinear()
-        .domain([100, 0])
-        .range([0,height]);
+            .domain([100, 0])
+            .range([0,height]);
         const lineGenerator = d3.line<any>()
         .x((d) => {
             return x(d['month']);
@@ -110,7 +117,7 @@ d3.csv('data/qol.csv')
         const lines = data.filter((d:any) => {
             return d['Domain'] == domain;
         }).map((d:any) => {
-            return months.map((month) => {
+            return visibleMonths.map((month) => {
                 return {
                     'value': d[String(month)],
                     'month': month,
@@ -124,18 +131,20 @@ d3.csv('data/qol.csv')
         });
 
         chart.selectAll("path")
-        .remove();
-
-        chart.selectAll("path")
             .data(lines)
-            .enter()
+        .enter()
             .append("path")
             .attr("fill", "none")
             .attr("stroke", "steelblue")
             .attr("stroke-width", 1.5)
-            .attr("d", (d) => {
-                return d;
-            });
+            .attr("class", "line")
+        .exit()
+            .remove();
+
+        chart.selectAll("path")
+        .attr("d", (d) => {
+            return d;
+        });
     }
 
     drawChart(currentDomain, viewableMonths);
