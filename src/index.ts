@@ -1,5 +1,4 @@
 import * as d3 from 'd3';
-import { line } from 'd3';
 
 d3.csv('data/qol.csv')
 .then((data:any) => {
@@ -10,6 +9,9 @@ d3.csv('data/qol.csv')
 
     let currentDomain: string;
     let viewableMonths: Array<Number>;
+    let viewableAgeGroups: Array<string>;
+    let viewableTreatments: Array<string>;
+    let viewableBaselineGroups: Array<string>
 
     const months: Array<Number> = [];
     
@@ -35,6 +37,9 @@ d3.csv('data/qol.csv')
 
     currentDomain = domains[0];
     viewableMonths = months.slice();
+    viewableBaselineGroups = baselineGroups.slice();
+    viewableAgeGroups = ageGroups.slice();
+    viewableTreatments = treatments.slice();
 
     d3.select('nav').selectAll('a')
     .data(domains)
@@ -45,29 +50,58 @@ d3.csv('data/qol.csv')
     })
     .on('click', function(d) {
         currentDomain = d;
-        drawChart(currentDomain, viewableMonths);
+        drawChart();
     });
 
-    d3.select('fieldset.months')
-    .selectAll('label')
-    .data(months)
-    .enter()
-    .append('label')
-    .text((d) => {
-        return String(d);
+    drawNavigation("Months", months, (updatedMonths: Number[]) => {
+        viewableMonths = updatedMonths;
+        drawChart();
     })
-    .append('input')
-    .attr('type', 'checkbox')
-    .attr('checked', 'checked')
-    .on('change', (d) => {
-        const dIndex = viewableMonths.indexOf(d);
-        if(dIndex === -1) {
-            viewableMonths.push(d);
-        } else {
-            viewableMonths.splice(dIndex, 1);
-        }
-        drawChart(currentDomain, viewableMonths);
-    })
+
+    drawNavigation("Age Range", ageGroups, (updated) => {
+        viewableAgeGroups = updated;
+        drawChart();
+    });
+
+    drawNavigation("Treatments", treatments, (updated) => {
+        viewableTreatments = updated;
+        drawChart();
+    });
+
+    drawNavigation("Baseline", baselineGroups, (updated) => {
+        viewableBaselineGroups = updated;
+        drawChart();
+    });
+
+    function drawNavigation(label: String, data: Array<any>, updateCallback: Function) {
+        const fieldset = d3.select('form')
+        .append('fieldset');
+
+        fieldset.append('legend')
+        .text(String(label));
+
+        const selectedData = data.slice();
+
+        fieldset.selectAll('label')
+        .data(data)
+        .enter()
+        .append('label')
+        .text((d) => {
+            return String(d);
+        })
+        .append('input')
+        .attr('type', 'checkbox')
+        .attr('checked', 'checked')
+        .on('change', (d) => {
+            const dIndex = selectedData.indexOf(d);
+            if(dIndex === -1) {
+                selectedData.push(d);
+            } else {
+                selectedData.splice(dIndex, 1);
+            }
+            updateCallback(selectedData);
+        })
+    }
 
     let width = 500;
     let height = 300;
@@ -82,14 +116,14 @@ d3.csv('data/qol.csv')
     const chart = svg.append("g")
         .attr('transform', `translate(${margin}, ${margin})`);
 
-    function drawChart(domain: string, _months: Array<Number>) {
-        const minMonth = Number(d3.min(_months));
-        const maxMonth = Number(d3.max(_months));
+    function drawChart() {
+        const minMonth = Number(d3.min(viewableMonths));
+        const maxMonth = Number(d3.max(viewableMonths));
 
-        const visibleMonths = months.filter((_month) => {
+        const _months = months.filter((_month) => {
             return (_month >= minMonth) && (_month <= maxMonth);
         });
-        visibleMonths.sort((a, b) => {
+        _months.sort((a, b) => {
             if (a > b) {
                 return 1;
             } else {
@@ -115,9 +149,21 @@ d3.csv('data/qol.csv')
         yAxis.call(d3.axisLeft(y));
 
         const lines = data.filter((d:any) => {
-            return d['Domain'] == domain;
+            if (d['Domain'] !== currentDomain) {
+                return false;
+            }
+            if(viewableAgeGroups.indexOf(d['Age range']) === -1) {
+                return false;
+            }
+            if (viewableBaselineGroups.indexOf(d['baseline sexual score']) === -1) {
+                return false;
+            }
+            if (viewableTreatments.indexOf(d['Treatment']) === -1) {
+                return false;
+            }
+            return true;
         }).map((d:any) => {
-            return visibleMonths.map((month) => {
+            return _months.map((month) => {
                 return {
                     'value': d[String(month)],
                     'month': month,
@@ -125,10 +171,11 @@ d3.csv('data/qol.csv')
                     'age': d['Age range']
                 };
             });
-        })
-        .map((d:any) => {
-            return lineGenerator(d);
         });
+
+        console.log(lines);
+
+        chart.selectAll("path").remove();
 
         chart.selectAll("path")
             .data(lines)
@@ -143,11 +190,11 @@ d3.csv('data/qol.csv')
 
         chart.selectAll("path")
         .attr("d", (d) => {
-            return d;
+            return lineGenerator(d);
         });
     }
 
-    drawChart(currentDomain, viewableMonths);
+    drawChart();
 
 });
 
